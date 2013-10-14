@@ -1,18 +1,30 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Dhgms.AppReliance.Cmd
+﻿namespace Dhgms.AppReliance.Cmd
 {
-    class Program
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+
+    using Dhgms.AppReliance.Common.Model.Info;
+
+    /// <summary>
+    /// The program entry point logic.
+    /// </summary>
+    public class Program
     {
-        static int Main(string[] args)
+        /// <summary>
+        /// Program entry point.
+        /// </summary>
+        /// <param name="args">
+        /// Command line arguments.
+        /// </param>
+        /// <returns>
+        /// Program Result Code.
+        /// </returns>
+        public static int Main(string[] args)
         {
             ShowHeader();
 
-            if (args.Length != 1)
+            if (args.Length < 1)
             {
                 ShowHelp();
                 return (int)Model.Info.ResultCode.InvalidNumberOfArguments;
@@ -25,21 +37,32 @@ namespace Dhgms.AppReliance.Cmd
             }
 
             var fileName = args[0];
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                throw new ArgumentException("Filename not valid");
+            }
+
             if (!System.IO.File.Exists(fileName))
             {
-                Console.Error.WriteLine(string.Format("File Not Found: {0}", fileName));
+                Console.Error.WriteLine("File Not Found: {0}", fileName);
                 return (int)Model.Info.ResultCode.FileNotFound;
             }
 
             var fileExtension = System.IO.Path.GetExtension(fileName);
-            var validExtensions = new string[] { ".dll", ".exe" };
+            var validExtensions = new[] { ".dll", ".exe" };
             if (validExtensions.All(x => !x.Equals(fileExtension, StringComparison.OrdinalIgnoreCase)))
             {
-                Console.Error.WriteLine(string.Format("File Must be an exe or dll: {0}", fileName));
+                Console.Error.WriteLine("File Must be an exe or dll: {0}", fileName);
                 return (int)Model.Info.ResultCode.InvalidFileType;
             }
 
-            Environment.CurrentDirectory = System.IO.Path.GetDirectoryName(fileName);
+            var directoryName = System.IO.Path.GetDirectoryName(fileName);
+            if (string.IsNullOrWhiteSpace(directoryName))
+            {
+                throw new InvalidOperationException("Unable to work out the directory name");
+            }
+
+            Environment.CurrentDirectory = directoryName;
             var assembly = System.Reflection.Assembly.LoadFrom(fileName);
             var dependencies = Common.Model.Helper.GetDependencies(assembly);
 
@@ -52,24 +75,24 @@ namespace Dhgms.AppReliance.Cmd
 
         private static void ShowHeader()
         {
-            var ver = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            Console.WriteLine(string.Format("DHGMS AppReliance V{0}", ver));
-            Console.WriteLine();
+            var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
+            Console.Out.WriteLine("AppReliance " + version + " (http://wsussmartapprove.codeplex.com)");
+            Console.Out.WriteLine("(C)Copyright 2013 DHGMS Solutions. Some Rights Reserved.\n");
         }
 
-        static int OutputDependencies(List<Common.Model.Info.Dependency> dependencies, int depth)
+        private static int OutputDependencies(IEnumerable<Dependency> dependencies, int depth)
         {
             var error = false;
             foreach (var dep in dependencies)
             {
                 if (dep.Location == Common.Model.Info.Location.NotFound)
                 {
-                    Console.Error.WriteLine(string.Format("{0}{1} NOT FOUND!", new String('.', depth * 2), dep.AssemblyName.Name));
+                    Console.Error.WriteLine("{0}{1} NOT FOUND!", new string('.', depth * 2), dep.AssemblyName.Name);
                     error = true;
                 }
                 else
                 {
-                    Console.WriteLine(string.Format("{0}{1}", new String('.', depth * 2), dep.AssemblyName.Name));
+                    Console.WriteLine("{0}{1}", new string('.', depth * 2), dep.AssemblyName.Name);
                     var subDeps = dep.Dependencies;
                     if (subDeps != null && subDeps.Count > 0)
                     {
