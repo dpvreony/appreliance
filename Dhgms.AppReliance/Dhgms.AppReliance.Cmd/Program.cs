@@ -5,6 +5,7 @@
     using System.Linq;
 
     using Dhgms.AppReliance.Common.Model.Info;
+    using System.Reflection;
 
     /// <summary>
     /// The program entry point logic.
@@ -56,6 +57,8 @@
                 return (int)Model.Info.ResultCode.InvalidFileType;
             }
 
+            fileName = System.IO.Path.GetFullPath(fileName);
+
             var directoryName = System.IO.Path.GetDirectoryName(fileName);
             if (string.IsNullOrWhiteSpace(directoryName))
             {
@@ -71,12 +74,21 @@
 
         private static void ShowHelp()
         {
+            var assemblyName = Assembly.GetExecutingAssembly().FullName.Split(',')[0];
+            Console.Out.WriteLine("Usage: {0} filename [/show:x]", assemblyName);
+            Console.Out.WriteLine();
+            Console.Out.WriteLine("    filename    Name of the file to process.");
+            Console.Out.WriteLine("    /show:x     0    Show All Files");
+            Console.Out.WriteLine("                1    Show Local Files Only");
+            Console.Out.WriteLine("                2    Show GAC Files Only");
+            Console.Out.WriteLine("                3    Show Missing Files Only");
+            Console.Out.WriteLine();
         }
 
         private static void ShowHeader()
         {
             var version = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version;
-            Console.Out.WriteLine("AppReliance " + version + " (http://wsussmartapprove.codeplex.com)");
+            Console.Out.WriteLine("AppReliance {0} (http://appreliance.codeplex.com)", version);
             Console.Out.WriteLine("(C)Copyright 2013 DHGMS Solutions. Some Rights Reserved.\n");
         }
 
@@ -92,7 +104,7 @@
                 }
                 else
                 {
-                    Console.WriteLine("{0}{1}", new string('.', depth * 2), dep.AssemblyName.Name);
+                    Console.WriteLine("{0}{1} -> {2}", new string('.', depth * 2), dep.AssemblyName.Name, dep.Location);
                     var subDeps = dep.Dependencies;
                     if (subDeps != null && subDeps.Count > 0)
                     {
