@@ -66,7 +66,7 @@
             }
 
             Environment.CurrentDirectory = directoryName;
-            var assembly = System.Reflection.Assembly.LoadFrom(fileName);
+            var assembly = Dhgms.AppReliance.Common.Platform.AssemblyLoaderProvider.Instance.LoadFromPath(fileName);
             var dependencies = Common.Model.Helper.GetDependencies(assembly);
 
             return OutputDependencies(dependencies, 0);

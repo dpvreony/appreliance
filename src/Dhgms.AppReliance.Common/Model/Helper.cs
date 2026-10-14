@@ -63,11 +63,12 @@ namespace Dhgms.AppReliance.Common.Model
 
         private static System.Reflection.Assembly GetAssembly(System.Reflection.AssemblyName ass)
         {
+            var loader = Dhgms.AppReliance.Common.Platform.AssemblyLoaderProvider.Instance;
             var resolverMethods = new Func<System.Reflection.Assembly>[]
                 {
-                    () => System.Reflection.Assembly.Load(ass.FullName),
-                    () => System.Reflection.Assembly.LoadFrom(ass.Name + ".dll"),
-                    () => System.Reflection.Assembly.LoadFrom(ass.Name + ".exe")
+                    () => loader.LoadByFullName(ass.FullName),
+                    () => loader.LoadFromFileName(ass.Name + ".dll"),
+                    () => loader.LoadFromFileName(ass.Name + ".exe")
                 };
 
             foreach (var resolverMethod in resolverMethods)
@@ -79,7 +80,6 @@ namespace Dhgms.AppReliance.Common.Model
                     return a;
                 }
             }
-
             /*
             var a = System.Reflection.Assembly.Load(ass.FullName);
 

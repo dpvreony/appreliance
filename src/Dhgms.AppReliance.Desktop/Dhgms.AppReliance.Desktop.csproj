@@ -1,11 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net481,net10.0</TargetFrameworks>
+    <TargetFrameworks>net481;net10.0-windows10.0.19041.0</TargetFrameworks>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Dhgms.AppReliance.Common\Dhgms.AppReliance.Common.csproj" />
+  </ItemGroup>
 
 </Project>

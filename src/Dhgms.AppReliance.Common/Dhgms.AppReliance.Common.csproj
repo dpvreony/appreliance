@@ -1,8 +1,23 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net481,net10.0</TargetFrameworks>
+    <TargetFrameworks>net481;net10.0</TargetFrameworks>
     <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
+
+  <!-- Prevent multi-target compile conflict by including framework-specific loaders only for the matching TFM -->
+  <ItemGroup>
+    <Compile Remove="Platform\AssemblyLoader.net10.cs" />
+    <Compile Remove="Platform\AssemblyLoader.net481.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <Compile Include="Platform\AssemblyLoader.net10.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <Compile Include="Platform\AssemblyLoader.net481.cs" />
+  </ItemGroup>
 
 </Project>
