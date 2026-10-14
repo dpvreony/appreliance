@@ -66,8 +66,8 @@
             }
 
             Environment.CurrentDirectory = directoryName;
-            var assembly = Dhgms.AppReliance.Common.Platform.AssemblyLoaderProvider.Instance.LoadFromPath(fileName);
-            var dependencies = Common.Model.Helper.GetDependencies(assembly);
+            var usePeReader = args.Any(a => a.Equals("/pereader", StringComparison.OrdinalIgnoreCase) || a.Equals("--pereader", StringComparison.OrdinalIgnoreCase));
+            var dependencies = Common.Model.Helper.GetDependenciesFromPath(fileName, usePeReader);
 
             return OutputDependencies(dependencies, 0);
         }
@@ -75,13 +75,15 @@
         private static void ShowHelp()
         {
             var assemblyName = Assembly.GetExecutingAssembly().FullName.Split(',')[0];
-            Console.Out.WriteLine("Usage: {0} filename [/show:x]", assemblyName);
+            Console.Out.WriteLine("Usage: {0} filename [/show:x] [/pereader]", assemblyName);
             Console.Out.WriteLine();
             Console.Out.WriteLine("    filename    Name of the file to process.");
             Console.Out.WriteLine("    /show:x     0    Show All Files");
             Console.Out.WriteLine("                1    Show Local Files Only");
             Console.Out.WriteLine("                2    Show GAC Files Only");
             Console.Out.WriteLine("                3    Show Missing Files Only");
+            Console.Out.WriteLine();
+            Console.Out.WriteLine("    /pereader   Use PEReader-based metadata scanning (avoids loading assemblies into the AppDomain)");
             Console.Out.WriteLine();
         }
 
@@ -108,7 +110,7 @@
                     var subDeps = dep.Dependencies;
                     if (subDeps != null && subDeps.Count > 0)
                     {
-                        OutputDependencies(subDeps, ++depth);
+                        _ = OutputDependencies(subDeps, ++depth);
                     }
                 }
             }

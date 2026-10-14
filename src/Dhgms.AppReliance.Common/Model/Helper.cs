@@ -1,4 +1,5 @@
 ﻿using System;
+using Dhgms.AppReliance.Common.Platform;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,7 +11,22 @@ namespace Dhgms.AppReliance.Common.Model
     {
         public static List<Info.Dependency> GetDependencies(System.Reflection.Assembly assembly)
         {
+            if (assembly == null)
+            {
+                throw new ArgumentNullException(nameof(assembly));
+            }
+
             return GetDependencies(assembly, new Stack<string>());
+        }
+
+        public static List<Info.Dependency> GetDependenciesFromPath(string assemblyPath)
+        {
+            return GetDependenciesFromPath(assemblyPath, new Stack<string>());
+        }
+
+        public static List<Info.Dependency> GetDependenciesFromPath(string assemblyPath, bool usePeReader)
+        {
+            return GetDependenciesFromPath(assemblyPath, new Stack<string>(), usePeReader);
         }
 
         private static List<Info.Dependency> GetDependencies(System.Reflection.Assembly assembly, Stack<string> dependencyStack)
@@ -56,7 +72,85 @@ namespace Dhgms.AppReliance.Common.Model
                 result.Add(new Info.Dependency { AssemblyName = ass, Dependencies = subDeps, Location = location });
             }
 
-            dependencyStack.Pop();
+            _ = dependencyStack.Pop();
+
+            return result.Count > 0 ? result : null;
+        }
+
+        private static List<Info.Dependency> GetDependenciesFromPath(string assemblyPath, Stack<string> dependencyStack)
+        {
+            return GetDependenciesFromPath(assemblyPath, dependencyStack, false);
+        }
+
+        private static List<Info.Dependency> GetDependenciesFromPath(string assemblyPath, Stack<string> dependencyStack, bool usePeReader)
+        {
+            if (string.IsNullOrWhiteSpace(assemblyPath))
+            {
+                throw new ArgumentNullException("assemblyPath");
+            }
+
+            IAssemblyInspector inspector;
+            if (usePeReader)
+            {
+                // prefer PEReader-based inspector when requested
+    #if NETFRAMEWORK
+                inspector = new Dhgms.AppReliance.Common.Platform.AssemblyInspectorPeReader();
+    #else
+                inspector = Dhgms.AppReliance.Common.Platform.AssemblyInspectorProvider.Instance;
+    #endif
+            }
+            else
+            {
+                inspector = Dhgms.AppReliance.Common.Platform.AssemblyInspectorProvider.Instance;
+            }
+            var assemblyName = inspector.GetAssemblyName(assemblyPath);
+            var assemblyShortName = assemblyName.Name;
+
+            if (dependencyStack.Contains(assemblyShortName))
+            {
+                return null;
+            }
+
+            dependencyStack.Push(assemblyShortName);
+
+            var refs = inspector.GetReferencedAssemblyNames(assemblyPath).OrderBy(x => x.Name);
+
+            var result = new List<Info.Dependency>();
+            foreach (var ass in refs)
+            {
+                if (result.Any(x => x.AssemblyName.Equals(ass)))
+                {
+                    continue;
+                }
+
+                List<Info.Dependency> subDeps = null;
+                Info.Location location = Info.Location.NotFound;
+
+                string resolvedPath;
+                bool isInGac;
+                var found = inspector.TryResolveReferencedAssemblyPath(ass, assemblyPath, out resolvedPath, out isInGac);
+
+                if (found)
+                {
+                    if (isInGac)
+                    {
+                        location = Info.Location.GlobalAssemblyCache;
+                    }
+                    else
+                    {
+                        location = Info.Location.FileSystem;
+                    }
+
+                    // don't walk into system assemblies or already-walked names
+                    subDeps = !dependencyStack.Contains(ass.Name) && !ass.Name.StartsWith("System.") && location == Info.Location.FileSystem
+                        ? GetDependenciesFromPath(resolvedPath, dependencyStack)
+                        : null;
+                }
+
+                result.Add(new Info.Dependency { AssemblyName = ass, Dependencies = subDeps, Location = location });
+            }
+
+            _ = dependencyStack.Pop();
 
             return result.Count > 0 ? result : null;
         }

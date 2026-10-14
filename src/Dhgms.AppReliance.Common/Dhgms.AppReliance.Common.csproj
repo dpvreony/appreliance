@@ -20,4 +20,34 @@
     <Compile Include="Platform\AssemblyLoader.net481.cs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.13" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.13" />
+  </ItemGroup>
+
+  <!-- Assembly inspector implementations -->
+  <ItemGroup>
+    <Compile Remove="Platform\AssemblyInspector.net10.cs" />
+    <Compile Remove="Platform\AssemblyInspector.net481.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <Compile Include="Platform\AssemblyInspector.net10.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="System.Reflection.MetadataLoadContext" Version="10.0.13" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <PackageReference Include="System.Reflection.Metadata" Version="10.0.13" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+    <Compile Include="Platform\AssemblyInspector.net481.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net481'">
+  </ItemGroup>
+
 </Project>
