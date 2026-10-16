@@ -4,14 +4,33 @@ namespace Dhgms.AppReliance.Common.Platform
 {
     public static class AssemblyLoaderProvider
     {
-        // Shared logger factory for loaders; uses Console for simplicity
-        public static readonly ILoggerFactory LoggerFactory = Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
-        {
-            _ = builder.AddConsole();
-        });
+        private static ILoggerFactory _loggerFactory = CreateFactory(false);
 
-        // Implementation class AssemblyLoader is provided per-targetframework in
-        // AssemblyLoader.net10.cs and AssemblyLoader.net481.cs
+        public static ILoggerFactory LoggerFactory => _loggerFactory;
+
         public static readonly IAssemblyLoader Instance = new AssemblyLoader();
+
+        public static void ConfigureLogging(bool verbose)
+        {
+            try
+            {
+                var old = _loggerFactory;
+                _loggerFactory = CreateFactory(verbose);
+                old?.Dispose();
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        private static ILoggerFactory CreateFactory(bool verbose)
+        {
+            return Microsoft.Extensions.Logging.LoggerFactory.Create(builder =>
+            {
+                _ = builder.AddConsole();
+                builder.SetMinimumLevel(verbose ? LogLevel.Debug : LogLevel.Information);
+            });
+        }
     }
 }

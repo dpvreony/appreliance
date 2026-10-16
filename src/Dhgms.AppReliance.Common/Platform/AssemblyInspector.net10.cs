@@ -5,11 +5,14 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using System.Collections.Generic;
 using System.Runtime.Loader;
+using Microsoft.Extensions.Logging;
 
 namespace Dhgms.AppReliance.Common.Platform
 {
     internal class AssemblyInspector : IAssemblyInspector
     {
+        private readonly Microsoft.Extensions.Logging.ILogger _logger = AssemblyLoaderProvider.LoggerFactory.CreateLogger("AssemblyInspector.net10");
+
         public AssemblyName GetAssemblyName(string assemblyPath)
         {
             if (string.IsNullOrWhiteSpace(assemblyPath)) throw new ArgumentNullException(nameof(assemblyPath));
@@ -45,6 +48,7 @@ namespace Dhgms.AppReliance.Common.Platform
                     }
                 }
 
+                _logger.LogDebug("Read assembly identity {Name}, Version={Version}", name.Name, name.Version);
                 return name;
             }
         }
@@ -93,6 +97,7 @@ namespace Dhgms.AppReliance.Common.Platform
                     refs.Add(name);
                 }
 
+                _logger.LogDebug("Found {Count} references for {Assembly}", refs.Count, full);
                 return refs.ToArray();
             }
         }
@@ -111,13 +116,14 @@ namespace Dhgms.AppReliance.Common.Platform
                 var path = resolver.ResolveAssemblyToPath(name);
                 if (!string.IsNullOrEmpty(path))
                 {
+                    _logger.LogDebug("Resolved {Name} -> {Path} via AssemblyDependencyResolver", name, path);
                     resolvedPath = path;
                     return true;
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // ignore
+                _logger.LogDebug(ex, "AssemblyDependencyResolver failed for {Name}", name);
             }
 
             // Probe local folder next to base assembly
@@ -127,6 +133,7 @@ namespace Dhgms.AppReliance.Common.Platform
                 var probeDll = Path.Combine(baseDir, name.Name + ".dll");
                 if (File.Exists(probeDll))
                 {
+                    _logger.LogDebug("Resolved {Name} -> {Path} via local probe", name, probeDll);
                     resolvedPath = probeDll;
                     return true;
                 }
@@ -134,6 +141,7 @@ namespace Dhgms.AppReliance.Common.Platform
                 var probeExe = Path.Combine(baseDir, name.Name + ".exe");
                 if (File.Exists(probeExe))
                 {
+                    _logger.LogDebug("Resolved {Name} -> {Path} via local probe", name, probeExe);
                     resolvedPath = probeExe;
                     return true;
                 }

@@ -3,7 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.Loader;
 using System.Runtime.InteropServices;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging; // ensure logging namespace is present
 
 namespace Dhgms.AppReliance.Common.Platform
 {

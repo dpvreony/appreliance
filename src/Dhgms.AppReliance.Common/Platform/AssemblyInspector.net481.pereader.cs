@@ -5,12 +5,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Reflection.Metadata;
+using Microsoft.Extensions.Logging;
 
 namespace Dhgms.AppReliance.Common.Platform
 {
     // PEReader-based inspector for .NET Framework to avoid loading assemblies into AppDomain
     internal class AssemblyInspectorPeReader : IAssemblyInspector
     {
+        private readonly Microsoft.Extensions.Logging.ILogger _logger = AssemblyLoaderProvider.LoggerFactory.CreateLogger("AssemblyInspector.net481.pereader");
         public AssemblyName GetAssemblyName(string assemblyPath)
         {
             if (string.IsNullOrWhiteSpace(assemblyPath)) throw new ArgumentNullException(nameof(assemblyPath));
@@ -57,6 +59,7 @@ namespace Dhgms.AppReliance.Common.Platform
                     refs.Add(an);
                 }
 
+                _logger.LogDebug("Found {Count} references for {Assembly}", refs.Count, full);
                 return refs.ToArray();
             }
         }
@@ -84,12 +87,30 @@ namespace Dhgms.AppReliance.Common.Platform
             }
 
             // Next probe local folder next to base assembly
+            // First, try to locate in the Global Assembly Cache using Fusion
+            try
+            {
+                if (FusionGacResolver.TryFindInGac(name, out var gacPath))
+                {
+                    _logger.LogDebug("Resolved {Name} -> {Path} via Fusion GAC", name, gacPath);
+                    resolvedPath = gacPath;
+                    isInGac = true;
+                    return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Fusion GAC lookup failed for {Name}", name);
+            }
+
+            // Next probe local folder next to base assembly
             try
             {
                 var baseDir = Path.GetDirectoryName(Path.GetFullPath(baseAssemblyPath));
                 var probeDll = Path.Combine(baseDir, name.Name + ".dll");
                 if (File.Exists(probeDll))
                 {
+                    _logger.LogDebug("Resolved {Name} -> {Path} via local probe", name, probeDll);
                     resolvedPath = probeDll;
                     return true;
                 }
@@ -97,12 +118,14 @@ namespace Dhgms.AppReliance.Common.Platform
                 var probeExe = Path.Combine(baseDir, name.Name + ".exe");
                 if (File.Exists(probeExe))
                 {
+                    _logger.LogDebug("Resolved {Name} -> {Path} via local probe", name, probeExe);
                     resolvedPath = probeExe;
                     return true;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogDebug(ex, "Local probe failed for {Name}", name);
             }
 
             return false;

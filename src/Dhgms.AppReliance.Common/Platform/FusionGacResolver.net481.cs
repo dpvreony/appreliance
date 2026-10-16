@@ -1,11 +1,14 @@
 using System;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 
 namespace Dhgms.AppReliance.Common.Platform
 {
     internal static class FusionGacResolver
     {
+        private static readonly Microsoft.Extensions.Logging.ILogger _logger = AssemblyLoaderProvider.LoggerFactory.CreateLogger("FusionGacResolver.net481");
+
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         private struct ASSEMBLY_INFO
         {
@@ -55,13 +58,15 @@ namespace Dhgms.AppReliance.Common.Platform
                 var res = cache.QueryAssemblyInfo(0, displayName, ref info);
                 if (res == 0)
                 {
-                    path = info.pszCurrentAssemblyPathBuf.TrimEnd('\0');
+                    var p = info.pszCurrentAssemblyPathBuf.TrimEnd('\0');
+                    _logger.LogDebug("Fusion located {Name} -> {Path}", displayName, p);
+                    path = p;
                     return true;
                 }
             }
             catch
             {
-                // ignore
+                _logger.LogDebug("Fusion GAC lookup failed for {Name}", name);
             }
 
             return false;

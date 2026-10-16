@@ -66,7 +66,28 @@
             }
 
             Environment.CurrentDirectory = directoryName;
+
+            var verbose = args.Any(a => a.Equals("/verbose", StringComparison.OrdinalIgnoreCase) || a.Equals("--verbose", StringComparison.OrdinalIgnoreCase) || a.Equals("-v", StringComparison.OrdinalIgnoreCase));
+            Dhgms.AppReliance.Common.Platform.AssemblyLoaderProvider.ConfigureLogging(verbose);
+
             var usePeReader = args.Any(a => a.Equals("/pereader", StringComparison.OrdinalIgnoreCase) || a.Equals("--pereader", StringComparison.OrdinalIgnoreCase));
+
+            // If not explicitly requested, detect target framework of the file and enable PEReader/GAC probing for .NET Framework targets
+            if (!usePeReader)
+            {
+                try
+                {
+                    if (Dhgms.AppReliance.Common.Platform.AssemblyFrameworkDetector.IsDotNetFrameworkAssembly(fileName))
+                    {
+                        usePeReader = true;
+                    }
+                }
+                catch
+                {
+                    // ignore detection errors and fall back to default
+                }
+            }
+
             var dependencies = Common.Model.Helper.GetDependenciesFromPath(fileName, usePeReader);
 
             return OutputDependencies(dependencies, 0);

@@ -126,9 +126,29 @@ namespace Dhgms.AppReliance.Common.Model
                 List<Info.Dependency> subDeps = null;
                 Info.Location location = Info.Location.NotFound;
 
+                // Apply binding redirects from app.config (if any) for .NET Framework targets
+                var probeName = Dhgms.AppReliance.Common.Platform.AppConfigBindingRedirects.ApplyRedirects(ass, assemblyPath);
+
                 string resolvedPath;
                 bool isInGac;
-                var found = inspector.TryResolveReferencedAssemblyPath(ass, assemblyPath, out resolvedPath, out isInGac);
+                var found = inspector.TryResolveReferencedAssemblyPath(probeName, assemblyPath, out resolvedPath, out isInGac);
+
+                if (!found && usePeReader)
+                {
+                    // If we are scanning a .NET Framework target from a .NET runner, attempt GAC folder probe
+                    try
+                    {
+                        if (GacFolderResolver.TryFindInGac(ass, out var gacPath))
+                        {
+                            resolvedPath = gacPath;
+                            isInGac = true;
+                            found = true;
+                        }
+                    }
+                    catch
+                    {
+                    }
+                }
 
                 if (found)
                 {

@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
+// ILogger is used in this file; keep Microsoft.Extensions.Logging import.
 
 namespace Dhgms.AppReliance.Common.Platform
 {
